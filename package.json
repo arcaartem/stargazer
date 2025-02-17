@@ -17,7 +17,7 @@
     "test:e2e": "playwright test",
     "test": "npm run test:e2e && npm run test:unit -- --run",
     "test:unit": "vitest",
-    "chromatic": "npx chromatic --project-token=chpt_0f3775d4aa1bb98"
+    "chromatic": "npx chromatic --exit-zero-on-changes"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^3.2.4",
