@@ -29,12 +29,14 @@ Before running this project, make sure you have:
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/arcaartem/stargazer.git
 cd stargazer
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 # or if you use yarn
@@ -80,11 +82,12 @@ yarn test
 The project is configured for GitHub Pages deployment. To deploy:
 
 1. Update the `base` property in `vite.config.ts` to match your repository name:
+
 ```typescript
 export default defineConfig({
-  base: '/stargazer/',
-  // ... other config
-})
+	base: '/stargazer/'
+	// ... other config
+});
 ```
 
 2. Push to the `main` branch, and GitHub Actions will automatically deploy to Pages.
