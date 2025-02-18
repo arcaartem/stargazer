@@ -1,6 +1,6 @@
 <script module>
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import RepoCard from '../lib/components/RepoCard.svelte';
+	import RepoCard from './RepoCard.svelte';
 
 	const { Story } = defineMeta({
 		title: 'Stargazer/Components/RepoCard',
