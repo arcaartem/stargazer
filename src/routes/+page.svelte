@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { fromStore } from 'svelte/store';
 	import { browser } from '$app/environment';
 	import { allRepos, progress } from '$lib/stores';
 	import type { Repository } from '$lib/types';
@@ -128,7 +129,7 @@
 			<div class="error">{error}</div>
 		{/if}
 
-		<ProgressBar />
+		<ProgressBar progress={fromStore(progress).current} />
 
 		<div class="stars-list">
 			{#each filteredRepos as repo (repo.id)}

@@ -1,13 +1,15 @@
 <script lang="ts">
-	import { progress } from '$lib/stores';
+	import type { ProgressState } from '$lib/types';
 
-	$: percentage = $progress.total > 0 ? Math.floor(($progress.current / $progress.total) * 100) : 0;
+	export let progress: ProgressState;
+
+	$: percentage = progress.total > 0 ? Math.floor((progress.current / progress.total) * 100) : 0;
 </script>
 
-{#if $progress.visible}
+{#if progress.visible}
 	<div class="progress">
 		<div class="progress-text">
-			Fetched {$progress.current} repositories
+			Fetched {progress.current} repositories
 		</div>
 		<div class="progress-bar">
 			<div class="progress-fill" style="width: {percentage}%"></div>
