@@ -6,7 +6,7 @@
 	$: formattedDate = new Date(repo.updated_at).toLocaleDateString();
 </script>
 
-<Card class="w-full">
+<Card class="w-full" size="lg">
 	<!-- <div class="repo-card"> -->
 	<Heading tag="h3">
 		<A href={repo.html_url} target="_blank" rel="noopener noreferrer">
