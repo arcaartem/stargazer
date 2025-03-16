@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { fromStore } from 'svelte/store';
 	import { browser } from '$app/environment';
@@ -51,6 +52,10 @@
 	}
 
 	$: filteredRepos = filterRepos($allRepos, searchTerm, sortBy);
+
+	onMount(() => {
+		goto('/search');
+	});
 
 	onMount(async () => {
 		if (browser) {
@@ -150,6 +155,13 @@
 		}
 	}
 </script>
+
+<div class="flex h-screen items-center justify-center">
+	<div class="text-center">
+		<h1 class="mb-4 text-2xl font-bold">Welcome to Stargazer</h1>
+		<p>Redirecting to search page...</p>
+	</div>
+</div>
 
 <svelte:head>
 	<title>GitHub Stars Search</title>

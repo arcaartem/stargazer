@@ -1,6 +1,10 @@
 <script lang="ts">
 	import '../app.css';
+	import NavBar from '$lib/components/NavBar.svelte';
 	let { children } = $props();
 </script>
 
-{@render children()}
+<NavBar />
+<main class="container mx-auto px-4 py-8">
+	{@render children()}
+</main>
