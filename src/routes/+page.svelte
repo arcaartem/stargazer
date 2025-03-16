@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { fromStore } from 'svelte/store';
 	import { browser } from '$app/environment';
@@ -54,7 +55,7 @@
 	$: filteredRepos = filterRepos($allRepos, searchTerm, sortBy);
 
 	onMount(() => {
-		goto('/search');
+		goto(base + '/search');
 	});
 
 	onMount(async () => {
