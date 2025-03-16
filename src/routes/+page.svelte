@@ -19,7 +19,7 @@
 	let username = '';
 	let token = '';
 	let searchTerm = '';
-	let sortBy: 'stars' | 'name' | 'updated' | 'relevance' = 'stars';
+	let sortBy: 'stars' | 'name' | 'updated' | 'relevance' = 'relevance';
 	let error = '';
 	let loading = false;
 	let searchResults: Array<{ item: Repository; score?: number }> = [];
@@ -89,11 +89,11 @@
 					return searchResults.map((result) => result.item);
 				}
 			} else {
-				// No search results, reset searchResults to all repos without scores
-				searchResults = repos.map((item) => ({ item }));
+				// No search results, return empty array
+				return [];
 			}
 		} else {
-			// No search term, reset searchResults to all repos without scores
+			// No search term, show all repos
 			searchResults = repos.map((item) => ({ item }));
 		}
 
