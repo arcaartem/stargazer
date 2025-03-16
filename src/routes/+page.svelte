@@ -181,6 +181,21 @@
 
 		<ProgressBar progress={fromStore(progress).current} />
 
+		{#if $allRepos.length > 0}
+			<div class="results-counter">
+				{#if searchTerm.trim()}
+					<span
+						>Found {filteredRepos.length} matching {filteredRepos.length === 1
+							? 'repository'
+							: 'repositories'}</span
+					>
+				{/if}
+				<span
+					>Total: {$allRepos.length} {$allRepos.length === 1 ? 'repository' : 'repositories'}</span
+				>
+			</div>
+		{/if}
+
 		<div class="stars-list">
 			{#each filteredRepos as repo (repo.id)}
 				<RepoCard {repo} />
@@ -249,5 +264,20 @@
 
 	.stars-list {
 		margin-top: 20px;
+	}
+
+	.results-counter {
+		display: flex;
+		gap: 20px;
+		padding: 10px 0;
+		color: #586069;
+		font-size: 14px;
+		border-bottom: 1px solid #e1e4e8;
+		margin-bottom: 20px;
+	}
+
+	.results-counter span {
+		display: inline-flex;
+		align-items: center;
 	}
 </style>
