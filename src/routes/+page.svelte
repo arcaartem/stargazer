@@ -5,18 +5,16 @@
 	import { fromStore } from 'svelte/store';
 	import { browser } from '$app/environment';
 	import { allRepos, progress } from '$lib/stores';
-	import type { Repository } from '$lib/types';
 	import { StarsDbService, SettingsDbService } from '$lib/db';
 	import { GitHubService } from '$lib/github';
+	import { searchRepositories } from '$lib/search';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import RepoCard from '$lib/components/RepoCard.svelte';
 	import NavBar from '$lib/components/NavBar.svelte';
-	import Fuse from 'fuse.js';
 
 	let starsDb: StarsDbService;
 	let settingsDb: SettingsDbService;
 	let github: GitHubService;
-	let fuse: Fuse<Repository> | null = null;
 
 	let username = '';
 	let token = '';
@@ -24,35 +22,8 @@
 	let sortBy: 'stars' | 'name' | 'updated' | 'relevance' = 'relevance';
 	let error = '';
 	let loading = false;
-	let searchResults: Array<{ item: Repository; score?: number }> = [];
 
-	// Fuse.js options for full-text search
-	const fuseOptions = {
-		keys: [
-			{ name: 'name', weight: 0.4 },
-			{ name: 'description', weight: 0.3 },
-			{ name: 'owner.login', weight: 0.2 },
-			{ name: 'language', weight: 0.1 }
-		],
-		threshold: 0.3,
-		distance: 100,
-		minMatchCharLength: 2,
-		includeScore: true
-	};
-
-	// Initialize Fuse when repos change
-	$: {
-		if ($allRepos.length > 0) {
-			fuse = new Fuse($allRepos, fuseOptions);
-			// Reset search results when repos change
-			searchResults = $allRepos.map((item) => ({ item }));
-		} else {
-			fuse = null;
-			searchResults = [];
-		}
-	}
-
-	$: filteredRepos = filterRepos($allRepos, searchTerm, sortBy);
+	$: filteredRepos = searchRepositories($allRepos, searchTerm, sortBy);
 
 	onMount(() => {
 		goto(base + '/search');
@@ -82,46 +53,6 @@
 			}
 		}
 	});
-
-	function filterRepos(repos: Repository[], search: string, sort: typeof sortBy): Repository[] {
-		if (search.trim() && fuse) {
-			// Get search results with scores
-			searchResults = fuse.search(search);
-
-			// If we have search results, use them
-			if (searchResults.length > 0) {
-				// For relevance sorting, just return the items in their scored order
-				if (sort === 'relevance') {
-					return searchResults.map((result) => result.item);
-				}
-			} else {
-				// No search results, return empty array
-				return [];
-			}
-		} else {
-			// No search term, show all repos
-			searchResults = repos.map((item) => ({ item }));
-		}
-
-		// Apply sorting based on the selected criteria
-		return searchResults
-			.sort((a, b) => {
-				switch (sort) {
-					case 'relevance':
-						// Higher score means lower relevance in Fuse.js, so we invert the comparison
-						return (a.score ?? 0) - (b.score ?? 0);
-					case 'stars':
-						return b.item.stargazers_count - a.item.stargazers_count;
-					case 'name':
-						return a.item.name.localeCompare(b.item.name);
-					case 'updated':
-						return new Date(b.item.updated_at).valueOf() - new Date(a.item.updated_at).valueOf();
-					default:
-						return 0;
-				}
-			})
-			.map((result) => result.item);
-	}
 
 	async function fetchStars(): Promise<void> {
 		if (!username) {

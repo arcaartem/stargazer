@@ -4,71 +4,23 @@
 	import type { Repository } from '$lib/types';
 	import { StarsDbService, SettingsDbService } from '$lib/db';
 	import { GitHubService } from '$lib/github';
+	import { searchRepositories } from '$lib/search';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import RepoCard from '$lib/components/RepoCard.svelte';
-	import Fuse from 'fuse.js';
 
 	let starsDb: StarsDbService;
 	let settingsDb: SettingsDbService;
 	let github: GitHubService;
-	let fuse: Fuse<Repository> | null = null;
 
 	let searchTerm = '';
 	let sortBy: 'stars' | 'name' | 'updated' | 'relevance' = 'relevance';
 	let error = '';
 	let loading = false;
-	let searchResults: Array<{ item: Repository; score?: number }> = [];
+	let searchResults: Repository[] = [];
 
-	// Fuse.js options for full-text search
-	const fuseOptions = {
-		keys: [
-			{ name: 'name', weight: 0.4 },
-			{ name: 'description', weight: 0.3 },
-			{ name: 'owner.login', weight: 0.2 },
-			{ name: 'language', weight: 0.1 }
-		],
-		threshold: 0.3,
-		distance: 100,
-		minMatchCharLength: 2,
-		includeScore: true
-	};
-
-	// Initialize Fuse when repos change
+	// Update search results when search term, sort option, or repos change
 	$: {
-		if ($allRepos.length > 0) {
-			fuse = new Fuse($allRepos, fuseOptions);
-			// Reset search results when repos change
-			searchResults = $allRepos.map((item) => ({ item }));
-		} else {
-			fuse = null;
-			searchResults = [];
-		}
-	}
-
-	// Update search results when search term or sort option changes
-	$: {
-		if (searchTerm && fuse) {
-			searchResults = fuse.search(searchTerm);
-		} else if ($allRepos.length > 0) {
-			searchResults = $allRepos.map((item) => ({ item }));
-		}
-
-		if (sortBy !== 'relevance') {
-			searchResults.sort((a, b) => {
-				const itemA = a.item;
-				const itemB = b.item;
-				switch (sortBy) {
-					case 'stars':
-						return itemB.stargazers_count - itemA.stargazers_count;
-					case 'name':
-						return itemA.name.localeCompare(itemB.name);
-					case 'updated':
-						return new Date(itemB.updated_at).getTime() - new Date(itemA.updated_at).getTime();
-					default:
-						return 0;
-				}
-			});
-		}
+		searchResults = searchRepositories($allRepos, searchTerm, sortBy);
 	}
 
 	async function fetchStars() {
@@ -159,8 +111,8 @@
 	{/if}
 
 	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-		{#each searchResults as { item } (item.id)}
-			<RepoCard repo={item} />
+		{#each searchResults as repo (repo.id)}
+			<RepoCard {repo} />
 		{/each}
 	</div>
 </div>
