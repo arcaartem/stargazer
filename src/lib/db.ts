@@ -109,9 +109,9 @@ export class StarsDbService extends DbService<RepositoryRecord> {
 	}
 
 	async saveStars(stars: Repository[]): Promise<void> {
-		stars.forEach(async (star) => {
-			await this.put({ id: star.id, repository: star, timestamp: Date.now() });
-		});
+		await Promise.all(
+			stars.map((star) => this.put({ id: star.id, repository: star, timestamp: Date.now() }))
+		);
 	}
 
 	async getCachedStars(): Promise<Repository[]> {
