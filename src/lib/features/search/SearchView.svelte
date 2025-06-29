@@ -1,14 +1,12 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { useProgress } from '$lib/composables';
 	import { ProgressBar } from '$lib/components';
 	import { useRepositories } from '../repositories/useRepositories';
-	import { useSearch } from './useSearch';
 	import SearchForm from './SearchForm.svelte';
 	import RepositoryList from '../repositories/RepositoryList.svelte';
-	import { get } from 'svelte/store';
-	import type { SortOption } from '$lib/types';
+	import type { SortOption } from '$lib/stores/app';
 
 	// Initialize composables
 	const repositories = useRepositories();
@@ -17,10 +15,7 @@
 	// Create derived stores
 	$: repositoryState = $repositories;
 	$: progressState = $progress;
-
-	// Initialize search composable with current repositories
-	$: search = useSearch(repositoryState.repositories);
-	$: searchState = $search;
+	$: searchResults = repositories.searchResults;
 
 	let errorMessage = '';
 
@@ -28,13 +23,6 @@
 		if (browser) {
 			// Load cached repositories on mount
 			await repositories.load();
-		}
-	});
-
-	onDestroy(() => {
-		// Clean up search timers
-		if (search) {
-			search.destroy();
 		}
 	});
 
@@ -54,10 +42,9 @@
 
 	function handleSearch(event: CustomEvent<{ term: string; sortBy: SortOption }>) {
 		const { term, sortBy } = event.detail;
+		// Use the repositories composable for search state management
 		repositories.setSearchTerm(term);
 		repositories.setSortBy(sortBy);
-		search.setTerm(term);
-		search.setSortBy(sortBy);
 	}
 
 	function clearError() {
@@ -99,8 +86,8 @@
 	{/if}
 
 	<RepositoryList
-		repositories={get(search.results)}
+		repositories={$searchResults}
 		loading={repositoryState.loading}
-		searchTerm={searchState.debouncedTerm}
+		searchTerm={repositoryState.searchTerm}
 	/>
 </div>

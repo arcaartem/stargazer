@@ -8,3 +8,4 @@ export * from './db';
 export * from './features';
 export * from './composables';
 export * from './components';
+export * from './utils';
