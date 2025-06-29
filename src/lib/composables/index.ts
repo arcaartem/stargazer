@@ -3,6 +3,7 @@ export { useSearch } from '../features/search';
 export { useSettings } from '../features/settings';
 export { useProgress } from './useProgress';
 export { useErrorHandler } from './useErrorHandler';
+export { useAsyncOperation } from './useAsyncOperation';
 
 export type { RepositoryState } from '../features/repositories';
 export type { SearchState } from '../features/search';

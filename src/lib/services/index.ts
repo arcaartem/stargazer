@@ -1,10 +1,12 @@
 import { StarsDbService, SettingsDbService } from '../db';
 import { GitHubService } from '../github';
+import { CacheService } from './cache';
 
 interface ServiceRegistry {
 	starsDb: StarsDbService;
 	settingsDb: SettingsDbService;
 	github: GitHubService;
+	cache: CacheService;
 }
 
 export class ServiceManager {
@@ -15,7 +17,8 @@ export class ServiceManager {
 		this.services = {
 			starsDb: new StarsDbService(),
 			settingsDb: new SettingsDbService(),
-			github: new GitHubService()
+			github: new GitHubService(),
+			cache: new CacheService()
 		};
 	}
 
@@ -40,10 +43,14 @@ export class ServiceManager {
 		this.services = {
 			starsDb: new StarsDbService(),
 			settingsDb: new SettingsDbService(),
-			github: new GitHubService()
+			github: new GitHubService(),
+			cache: new CacheService()
 		};
 	}
 }
+
+// Export services for direct usage if needed
+export { CacheService } from './cache';
 
 // Export type for TypeScript usage
 export type { ServiceRegistry };
