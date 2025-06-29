@@ -1,8 +1,8 @@
 import { writable, derived, get } from 'svelte/store';
-import type { Repository } from '../types';
-import { ServiceManager } from '../services';
-import { searchRepositories } from '../search';
-import type { SortOption } from '../stores/app';
+import type { Repository } from '../../types';
+import { ServiceManager } from '../../services';
+import { searchRepositories } from '../../search';
+import type { SortOption } from '../../stores/app';
 
 export interface RepositoryState {
 	repositories: Repository[];

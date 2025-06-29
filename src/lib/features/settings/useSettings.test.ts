@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useSettings, type SettingsState } from './useSettings';
-import { ServiceManager } from '../services';
+import { ServiceManager } from '../../services';
 
 // Mock the ServiceManager
-vi.mock('../services', () => ({
+vi.mock('../../services', () => ({
 	ServiceManager: {
 		getInstance: vi.fn()
 	}

@@ -1,7 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
-import { searchRepositories } from '../search';
-import type { Repository } from '../types';
-import type { SortOption } from '../stores/app';
+import { searchRepositories } from '../../search';
+import type { Repository } from '../../types';
+import type { SortOption } from '../../stores/app';
 
 export interface SearchState {
 	term: string;

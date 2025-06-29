@@ -1,5 +1,5 @@
 import { writable, get } from 'svelte/store';
-import { ServiceManager } from '../services';
+import { ServiceManager } from '../../services';
 
 export interface SettingsState {
 	username: string;

@@ -1,9 +1,9 @@
-export { useRepositories } from './useRepositories';
-export { useSearch } from './useSearch';
-export { useSettings } from './useSettings';
+export { useRepositories } from '../features/repositories';
+export { useSearch } from '../features/search';
+export { useSettings } from '../features/settings';
 export { useProgress } from './useProgress';
 
-export type { RepositoryState } from './useRepositories';
-export type { SearchState } from './useSearch';
-export type { SettingsState } from './useSettings';
+export type { RepositoryState } from '../features/repositories';
+export type { SearchState } from '../features/search';
+export type { SettingsState } from '../features/settings';
 export type { ProgressManager } from './useProgress';

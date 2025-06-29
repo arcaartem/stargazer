@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useSearch, type SearchStats } from './useSearch';
-import type { Repository } from '../types';
+import type { Repository } from '../../types';
 
 // Mock the search function
 vi.mock('../search', () => ({

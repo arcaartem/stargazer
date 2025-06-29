@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useRepositories, type RepositoryState } from './useRepositories';
-import { ServiceManager } from '../services';
-import type { Repository } from '../types';
+import { ServiceManager } from '../../services';
+import type { Repository } from '../../types';
 
 // Mock the ServiceManager
-vi.mock('../services', () => ({
+vi.mock('../../services', () => ({
 	ServiceManager: {
 		getInstance: vi.fn()
 	}
