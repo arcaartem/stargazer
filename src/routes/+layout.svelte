@@ -1,10 +1,12 @@
 <script lang="ts">
 	import '../app.css';
 	import NavBar from '$lib/components/NavBar.svelte';
-	let { children } = $props();
+
+	export let data: { pathname: string };
 </script>
 
-<NavBar />
-<main class="container mx-auto px-4 py-8">
-	{@render children()}
+<NavBar pathname={data.pathname} />
+
+<main class="container mx-auto p-4">
+	<slot />
 </main>

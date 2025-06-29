@@ -10,7 +10,6 @@
 	import { searchRepositories } from '$lib/search';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
 	import RepoCard from '$lib/components/RepoCard.svelte';
-	import NavBar from '$lib/components/NavBar.svelte';
 
 	let starsDb: StarsDbService;
 	let settingsDb: SettingsDbService;
@@ -100,7 +99,6 @@
 </svelte:head>
 
 <main>
-	<NavBar />
 	<div class="container">
 		<h1>GitHub Stars Search</h1>
 
