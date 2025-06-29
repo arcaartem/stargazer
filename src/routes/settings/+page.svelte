@@ -1,65 +1,74 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { SettingsDbService } from '$lib/db';
+	import { browser } from '$app/environment';
+	import { useSettings } from '$lib/composables';
+	import { SettingsForm } from '$lib/components';
 
-	let settingsDb: SettingsDbService;
-	let username = '';
-	let token = '';
-	let loading = true;
+	// Initialize composables
+	const settings = useSettings();
+
+	// Reactive state
+	$: settingsState = $settings;
+
+	let errorMessage = '';
 
 	onMount(async () => {
-		settingsDb = new SettingsDbService();
-		username = (await settingsDb.getUsername()) || '';
-		token = (await settingsDb.getToken()) || '';
-		loading = false;
+		if (browser) {
+			await settings.load();
+		}
 	});
 
-	async function saveSettings() {
-		loading = true;
-		await settingsDb.saveUsername(username);
-		await settingsDb.saveToken(token);
-		loading = false;
+	async function handleSave() {
+		try {
+			errorMessage = '';
+			await settings.save();
+		} catch (error) {
+			errorMessage = error instanceof Error ? error.message : 'Failed to save settings';
+		}
+	}
+
+	function handleChange(event: CustomEvent<{ username: string; token: string }>) {
+		const { username, token } = event.detail;
+		settings.setUsername(username);
+		settings.setToken(token);
+	}
+
+	function clearError() {
+		errorMessage = '';
+		settings.clearError();
 	}
 </script>
 
-<div class="mx-auto max-w-2xl">
-	<h1 class="mb-8 text-3xl font-bold">Settings</h1>
-
-	{#if loading}
-		<div class="text-center">Loading...</div>
-	{:else}
-		<form on:submit|preventDefault={saveSettings} class="space-y-6">
-			<div>
-				<label for="username" class="block text-sm font-medium text-gray-700">
-					GitHub Username
-				</label>
-				<input
-					type="text"
-					id="username"
-					bind:value={username}
-					class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-				/>
+{#if errorMessage || settingsState.error}
+	<div class="mb-6 rounded-md bg-red-50 p-4">
+		<div class="flex">
+			<div class="ml-3">
+				<h3 class="text-sm font-medium text-red-800">Error</h3>
+				<div class="mt-2 text-sm text-red-700">
+					{errorMessage || settingsState.error}
+				</div>
+				<button
+					on:click={clearError}
+					class="mt-2 text-sm font-medium text-red-800 hover:text-red-600"
+				>
+					Dismiss
+				</button>
 			</div>
+		</div>
+	</div>
+{/if}
 
-			<div>
-				<label for="token" class="block text-sm font-medium text-gray-700"> GitHub Token </label>
-				<input
-					type="password"
-					id="token"
-					bind:value={token}
-					class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-				/>
-				<p class="mt-2 text-sm text-gray-500">
-					Your GitHub personal access token is stored securely in your browser's IndexedDB.
-				</p>
-			</div>
+{#if settingsState.loading === false && !settingsState.error && !errorMessage}
+	<div class="mb-6 rounded-md bg-green-50 p-4">
+		<div class="text-sm text-green-700">Settings saved successfully!</div>
+	</div>
+{/if}
 
-			<button
-				type="submit"
-				class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
-			>
-				Save Settings
-			</button>
-		</form>
-	{/if}
-</div>
+<SettingsForm
+	username={settingsState.username}
+	token={settingsState.token}
+	loading={settingsState.loading}
+	isDirty={settingsState.isDirty}
+	on:save={handleSave}
+	on:change={handleChange}
+/>

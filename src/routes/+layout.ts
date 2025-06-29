@@ -1,10 +1,11 @@
 import { browser } from '$app/environment';
+import type { LayoutLoad } from './$types';
 import { allRepos } from '$lib/stores';
 import { StarsDbService } from '$lib/db';
 
 export const prerender = true;
 
-export async function load({ url }) {
+export const load: LayoutLoad = async ({ url }) => {
 	if (browser) {
 		const starsDb = new StarsDbService();
 		const cached = await starsDb.getCachedStars();
@@ -13,4 +14,4 @@ export async function load({ url }) {
 		}
 	}
 	return { pathname: url.pathname };
-}
+};

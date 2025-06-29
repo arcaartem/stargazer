@@ -28,3 +28,5 @@ export interface RepositoryRecord {
 	repository: Repository;
 	timestamp: number;
 }
+
+export type SortOption = 'stars' | 'name' | 'updated' | 'relevance';

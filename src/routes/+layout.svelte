@@ -1,11 +1,9 @@
 <script lang="ts">
 	import '../app.css';
-	import NavBar from '$lib/components/NavBar.svelte';
-
-	export let data: { pathname: string };
+	import { NavBar } from '$lib/components';
 </script>
 
-<NavBar pathname={data.pathname} />
+<NavBar />
 
 <main class="container mx-auto p-4">
 	<slot />
