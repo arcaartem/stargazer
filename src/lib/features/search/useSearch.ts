@@ -27,7 +27,7 @@ export function useSearch(repositories: Repository[], debounceMs = 300) {
 
 	const state = writable<SearchState>(initialState);
 
-	let debounceTimeout: number | null = null;
+	let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	// Handle debounced search term updates
 	const updateDebouncedTerm = (term: string) => {
