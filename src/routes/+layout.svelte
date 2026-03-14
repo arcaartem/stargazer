@@ -1,10 +1,12 @@
-<script lang="ts">
+<script>
 	import '../app.css';
-	import { NavBar } from '$lib/components';
+	import NavBar from '$lib/components/layout/NavBar.svelte';
+	let { children } = $props();
 </script>
 
-<NavBar />
-
-<main class="container mx-auto p-4">
-	<slot />
-</main>
+<div class="flex min-h-screen flex-col">
+	<NavBar />
+	<main class="flex-1">
+		{@render children()}
+	</main>
+</div>

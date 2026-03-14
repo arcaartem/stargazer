@@ -1,80 +1,167 @@
-export interface Repository {
+export interface StarredRepo {
 	id: number;
+	nodeId: string;
 	name: string;
+	fullName: string;
 	description: string | null;
-	html_url: string;
+	readme: string;
+
+	ownerLogin: string;
+	ownerAvatarUrl: string;
+	ownerType: string;
+
+	htmlUrl: string;
+	homepageUrl: string | null;
+	gitUrl: string;
+	sshUrl: string;
+	cloneUrl: string;
+
 	language: string | null;
-	stargazers_count: number;
-	updated_at: string;
-	owner: {
-		login: string;
-	};
+	topics: string[];
+	license: string | null;
+	archived: boolean;
+	fork: boolean;
+	isTemplate: boolean;
+	private: boolean;
+
+	stargazersCount: number;
+	watchersCount: number;
+	forksCount: number;
+	openIssuesCount: number;
+	size: number;
+
+	starredAt: string;
+	createdAt: string;
+	updatedAt: string;
+	pushedAt: string;
+
+	hasIssues: boolean;
+	hasProjects: boolean;
+	hasWiki: boolean;
+	hasPages: boolean;
+	hasDiscussions: boolean;
+	hasDownloads: boolean;
+
+	defaultBranch: string;
+
+	licenseName: string | null;
+	licenseUrl: string | null;
+
+	lastSyncedAt: string;
 }
 
-export interface ProgressState {
+export interface AppSettings {
+	githubUsername: string;
+	githubToken: string;
+	lastSyncedAt: string | null;
+	repoCount: number;
+	readmeCount: number;
+}
+
+export interface SyncProgress {
+	phase:
+		| 'idle'
+		| 'fetching-repos'
+		| 'fetching-readmes'
+		| 'indexing'
+		| 'persisting'
+		| 'done'
+		| 'error';
 	current: number;
 	total: number;
-	visible: boolean;
+	message: string;
 }
-
-export interface SettingsRecord {
-	name: string;
-	value?: string;
-	timestamp: number;
-}
-
-export interface RepositoryRecord {
-	id: number;
-	repository: Repository;
-	timestamp: number;
-}
-
-export type SortOption = 'stars' | 'name' | 'updated' | 'relevance';
-
-// New utility types for Phase 4
-export type AsyncState<T> = {
-	data: T | null;
-	loading: boolean;
-	error: string | null;
-};
 
 export interface SearchFilters {
-	term: string;
-	sortBy: SortOption;
-	language?: string;
+	languages: string[];
+	topics: string[];
+	licenses: string[];
+	owners: string[];
+	ownerTypes: string[];
+	archived: boolean | null;
+	fork: boolean | null;
+	isTemplate: boolean | null;
+	isPrivate: boolean | null;
+	hasIssues: boolean | null;
+	hasWiki: boolean | null;
+	hasPages: boolean | null;
+	hasDiscussions: boolean | null;
+	starsMin: number | null;
+	starsMax: number | null;
+	forksMin: number | null;
+	forksMax: number | null;
+	sizeMin: number | null;
+	sizeMax: number | null;
+	createdAfter: string | null;
+	createdBefore: string | null;
+	updatedAfter: string | null;
+	updatedBefore: string | null;
+	starredAfter: string | null;
+	starredBefore: string | null;
 }
 
-export interface ValidationResult {
-	isValid: boolean;
-	errors: string[];
+export type SortOption =
+	| 'relevance'
+	| 'stars-desc'
+	| 'stars-asc'
+	| 'name-asc'
+	| 'name-desc'
+	| 'updated-desc'
+	| 'starred-desc'
+	| 'created-desc'
+	| 'forks-desc'
+	| 'size-desc';
+
+export interface SearchResult {
+	repos: StarredRepo[];
+	totalCount: number;
 }
 
-export interface ErrorInfo {
-	message: string;
-	timestamp: number;
-	context?: Record<string, unknown>;
+export interface GitHubApiRepo {
+	id: number;
+	node_id: string;
+	name: string;
+	full_name: string;
+	description: string | null;
+	owner: {
+		login: string;
+		avatar_url: string;
+		type: string;
+	};
+	html_url: string;
+	homepage: string | null;
+	git_url: string;
+	ssh_url: string;
+	clone_url: string;
+	language: string | null;
+	topics: string[];
+	license: {
+		spdx_id: string;
+		name: string;
+		url: string | null;
+	} | null;
+	archived: boolean;
+	fork: boolean;
+	is_template: boolean;
+	private: boolean;
+	stargazers_count: number;
+	watchers_count: number;
+	forks_count: number;
+	open_issues_count: number;
+	size: number;
+	created_at: string;
+	updated_at: string;
+	pushed_at: string;
+	has_issues: boolean;
+	has_projects: boolean;
+	has_wiki: boolean;
+	has_pages: boolean;
+	has_discussions: boolean;
+	has_downloads: boolean;
+	default_branch: string;
 }
 
-export type ErrorSeverity = 'info' | 'warning' | 'error' | 'critical';
-
-export interface AppError {
-	id: string;
-	severity: ErrorSeverity;
-	message: string;
-	details?: string;
-	timestamp: number;
-	context?: Record<string, unknown>;
-	stack?: string;
-}
-
-// Type guards for runtime validation
-export type TypeGuard<T> = (value: unknown) => value is T;
-
-// Common form state pattern
-export interface FormState<T> {
-	values: T;
-	errors: Partial<Record<keyof T, string>>;
-	isValid: boolean;
-	isDirty: boolean;
-	isSubmitting: boolean;
+export interface GitHubStarResponse {
+	starred_at: string;
+	repo: GitHubApiRepo;
 }

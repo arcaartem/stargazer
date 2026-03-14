@@ -1,80 +1,35 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Settings Management', () => {
-	test.beforeEach(async ({ page }) => {
-		// Go to settings page and wait for it to load
-		await page.goto('http://localhost:4173/stargazer/settings');
-		await page.waitForLoadState('networkidle');
-
-		// Wait for the form to be visible
-		await page.waitForSelector('#username', { timeout: 10000 });
+test.describe('settings page', () => {
+	test('shows settings form', async ({ page }) => {
+		await page.goto('settings');
+		await expect(page.getByLabel('GitHub Username')).toBeVisible();
+		await expect(page.getByLabel('Personal Access Token')).toBeVisible();
 	});
 
-	test('should display settings form', async ({ page }) => {
-		// Check form elements are present
-		await expect(page.locator('#username')).toBeVisible();
-		await expect(page.locator('#token')).toBeVisible();
-		await expect(page.locator('button[type="submit"]')).toBeVisible();
-
-		// Check labels are present
-		await expect(page.locator('label[for="username"]')).toContainText('GitHub Username');
-		await expect(page.locator('label[for="token"]')).toContainText('GitHub Personal Access Token');
+	test('save button is disabled initially', async ({ page }) => {
+		await page.goto('settings');
+		await expect(page.getByRole('button', { name: 'Save Settings' })).toBeDisabled();
 	});
 
-	test('should save user credentials', async ({ page }) => {
-		// Fill in credentials
-		await page.fill('#username', 'testuser');
-		await page.fill('#token', 'ghp_test123');
-
-		// Should show unsaved changes
-		await expect(page.locator('text=You have unsaved changes')).toBeVisible();
-
-		// Save settings
-		await page.click('button[type="submit"]');
-
-		// Should show success message
-		await expect(page.locator('.bg-green-50')).toBeVisible({ timeout: 5000 });
-		await expect(page.locator('text=Settings saved successfully')).toBeVisible();
+	test('can enter username and token', async ({ page }) => {
+		await page.goto('settings');
+		await page.getByLabel('GitHub Username').fill('testuser');
+		await page.getByLabel('Personal Access Token').fill('ghp_testtokenvalue12345');
+		// Save button should be enabled after filling valid values
+		await expect(page.getByRole('button', { name: 'Save Settings' })).toBeEnabled();
 	});
 
-	test('should validate required fields', async ({ page }) => {
-		// Button should be disabled when no changes are made
-		await expect(page.locator('button[type="submit"]')).toBeDisabled();
-
-		// Fill one field
-		await page.fill('#username', 'testuser');
-
-		// Button should now be enabled
-		await expect(page.locator('button[type="submit"]')).toBeEnabled();
+	test('shows clear data button', async ({ page }) => {
+		await page.goto('settings');
+		await expect(page.getByRole('button', { name: 'Clear All Data' })).toBeVisible();
 	});
 
-	test('should show dirty state when fields are modified', async ({ page }) => {
-		// Make changes
-		await page.fill('#username', 'testuser');
-
-		// Should show dirty state indicator
-		await expect(page.locator('text=You have unsaved changes')).toBeVisible();
-
-		// Should enable save button
-		await expect(page.locator('button[type="submit"]')).toBeEnabled();
-	});
-
-	test('should clear success message after new changes', async ({ page }) => {
-		// Save some credentials
-		await page.fill('#username', 'testuser');
-		await page.fill('#token', 'ghp_test123');
-		await page.click('button[type="submit"]');
-
-		// Wait for success message
-		await expect(page.locator('.bg-green-50')).toBeVisible();
-
-		// Make new changes
-		await page.fill('#username', 'newuser');
-
-		// Success message should be gone
-		await expect(page.locator('.bg-green-50')).toBeHidden();
-
-		// Should show unsaved changes
-		await expect(page.locator('text=You have unsaved changes')).toBeVisible();
+	test('clear data shows confirmation', async ({ page }) => {
+		await page.goto('settings');
+		await page.getByRole('button', { name: 'Clear All Data' }).click();
+		await expect(page.getByText('Are you sure?')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Yes, clear all data' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible();
 	});
 });

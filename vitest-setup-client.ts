@@ -15,69 +15,6 @@ Object.defineProperty(window, 'matchMedia', {
 	}))
 });
 
-// Mock IndexedDB for all tests
-const createMockIDBRequest = (result?: unknown, error?: unknown) => ({
-	result,
-	error,
-	onsuccess: null as ((this: IDBRequest, ev: Event) => void) | null,
-	onerror: null as ((this: IDBRequest, ev: Event) => void) | null,
-	onupgradeneeded: null as ((this: IDBOpenDBRequest, ev: IDBVersionChangeEvent) => void) | null,
-	addEventListener: vi.fn(),
-	removeEventListener: vi.fn()
-});
-
-const createMockObjectStore = () => ({
-	put: vi.fn().mockReturnValue(createMockIDBRequest()),
-	get: vi.fn().mockReturnValue(createMockIDBRequest()),
-	getAll: vi.fn().mockReturnValue(createMockIDBRequest([])),
-	delete: vi.fn().mockReturnValue(createMockIDBRequest()),
-	clear: vi.fn().mockReturnValue(createMockIDBRequest()),
-	createIndex: vi.fn(),
-	index: vi.fn(),
-	count: vi.fn().mockReturnValue(createMockIDBRequest(0))
-});
-
-const createMockTransaction = () => ({
-	objectStore: vi.fn().mockReturnValue(createMockObjectStore()),
-	abort: vi.fn(),
-	commit: vi.fn(),
-	error: null,
-	mode: 'readwrite',
-	oncomplete: null,
-	onerror: null,
-	onabort: null
-});
-
-const createMockDatabase = () => ({
-	createObjectStore: vi.fn().mockReturnValue(createMockObjectStore()),
-	deleteObjectStore: vi.fn(),
-	transaction: vi.fn().mockReturnValue(createMockTransaction()),
-	close: vi.fn(),
-	name: 'test-db',
-	version: 1,
-	objectStoreNames: {
-		contains: vi.fn().mockReturnValue(false),
-		length: 0,
-		item: vi.fn()
-	},
-	onabort: null,
-	onclose: null,
-	onerror: null,
-	onversionchange: null
-});
-
-const mockIDBOpenRequest = createMockIDBRequest(createMockDatabase());
-
-Object.defineProperty(window, 'indexedDB', {
-	writable: true,
-	value: {
-		open: vi.fn().mockReturnValue(mockIDBOpenRequest),
-		deleteDatabase: vi.fn().mockReturnValue(createMockIDBRequest()),
-		databases: vi.fn().mockResolvedValue([]),
-		cmp: vi.fn()
-	}
-});
-
 // Mock fetch globally
 Object.defineProperty(window, 'fetch', {
 	writable: true,

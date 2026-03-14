@@ -1,26 +1,27 @@
 <script lang="ts">
+	import { page } from '$app/stores';
 	import { base } from '$app/paths';
+	import { Button } from '$lib/components/ui/button';
+
+	const navItems = [
+		{ href: `${base}/search`, label: 'Search' },
+		{ href: `${base}/settings`, label: 'Settings' }
+	];
 </script>
 
-<nav class="bg-gray-800 text-white">
-	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-		<div class="flex h-16 items-center justify-between">
-			<div class="flex items-center">
-				<div class="flex-shrink-0">
-					<h1 class="text-xl font-bold">Stargazer</h1>
-				</div>
-			</div>
-			<div class="flex space-x-4">
-				<a href="{base}/search" class="rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-700">
-					Search
-				</a>
-				<a
-					href="{base}/settings"
-					class="rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-700"
+<nav class="bg-background border-b">
+	<div class="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
+		<a href="{base}/search" class="text-lg font-semibold tracking-tight">Stargazer</a>
+		<div class="flex gap-1">
+			{#each navItems as item}
+				<Button
+					variant={$page.url.pathname === item.href ? 'secondary' : 'ghost'}
+					href={item.href}
+					size="sm"
 				>
-					Settings
-				</a>
-			</div>
+					{item.label}
+				</Button>
+			{/each}
 		</div>
 	</div>
 </nav>
