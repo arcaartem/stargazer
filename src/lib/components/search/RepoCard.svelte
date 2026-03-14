@@ -43,7 +43,7 @@
 
 	{#if repo.topics.length > 0}
 		<div class="mt-2 flex flex-wrap gap-1">
-			{#each repo.topics.slice(0, 5) as topic}
+			{#each repo.topics.slice(0, 5) as topic (topic)}
 				<Badge variant="secondary" class="text-xs">{topic}</Badge>
 			{/each}
 			{#if repo.topics.length > 5}

@@ -120,7 +120,7 @@
 					{#if repo.topics.length > 0}
 						<Separator />
 						<div class="flex flex-wrap gap-1">
-							{#each repo.topics as topic}
+							{#each repo.topics as topic (topic)}
 								<Badge variant="secondary">{topic}</Badge>
 							{/each}
 						</div>

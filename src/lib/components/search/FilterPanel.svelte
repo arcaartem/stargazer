@@ -89,7 +89,7 @@
 		</button>
 		{#if expandedSections.language}
 			<div class="mt-1 max-h-40 space-y-1 overflow-y-auto">
-				{#each availableLanguages as lang}
+				{#each availableLanguages as lang (lang)}
 					<label
 						class="hover:bg-accent flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm"
 					>
@@ -117,7 +117,7 @@
 		</button>
 		{#if expandedSections.topics}
 			<div class="mt-1 max-h-40 space-y-1 overflow-y-auto">
-				{#each availableTopics.slice(0, 30) as topic}
+				{#each availableTopics.slice(0, 30) as topic (topic)}
 					<label
 						class="hover:bg-accent flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm"
 					>
@@ -145,7 +145,7 @@
 		</button>
 		{#if expandedSections.license}
 			<div class="mt-1 max-h-40 space-y-1 overflow-y-auto">
-				{#each availableLicenses as lic}
+				{#each availableLicenses as lic (lic)}
 					<label
 						class="hover:bg-accent flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm"
 					>
@@ -173,7 +173,7 @@
 		</button>
 		{#if expandedSections.flags}
 			<div class="mt-1 space-y-2">
-				{#each [{ key: 'archived', label: 'Archived' }, { key: 'fork', label: 'Fork' }, { key: 'isTemplate', label: 'Template' }, { key: 'isPrivate', label: 'Private' }] as flag}
+				{#each [{ key: 'archived', label: 'Archived' }, { key: 'fork', label: 'Fork' }, { key: 'isTemplate', label: 'Template' }, { key: 'isPrivate', label: 'Private' }] as flag (flag.key)}
 					<button
 						class="hover:bg-accent flex w-full items-center justify-between rounded px-1 py-0.5 text-sm"
 						onclick={() =>

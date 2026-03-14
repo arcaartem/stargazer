@@ -32,9 +32,18 @@ export default ts.config(
 		}
 	},
 	{
+		files: ['**/*.svelte.ts'],
+		languageOptions: {
+			parserOptions: {
+				parser: ts.parser
+			}
+		}
+	},
+	{
 		files: ['src/lib/components/ui/**/*.svelte'],
 		rules: {
-			'svelte/valid-compile': 'off'
+			'svelte/valid-compile': 'off',
+			'svelte/no-navigation-without-resolve': 'off'
 		}
 	}
 );
