@@ -22,8 +22,7 @@
 
 	async function handleSync() {
 		await settingsStore.save();
-		await syncStore.startSync();
-		await settingsStore.load();
+		syncStore.startSync();
 	}
 
 	async function handleClearData() {
@@ -35,7 +34,7 @@
 	}
 </script>
 
-<div class="mx-auto max-w-2xl space-y-8 p-6">
+<div class="mx-auto max-w-2xl space-y-8 p-3 sm:p-6">
 	<div>
 		<h1 class="text-2xl font-bold">Settings</h1>
 		<p class="text-muted-foreground mt-1 text-sm">
@@ -66,12 +65,16 @@
 	<section class="space-y-4">
 		<h2 class="text-lg font-semibold">Sync</h2>
 
-		<div class="flex items-center gap-4">
+		<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
 			<SyncButton
 				isSyncing={syncStore.isSyncing}
 				disabled={!settingsStore.isValid}
 				onSync={handleSync}
 			/>
+
+			{#if syncStore.isSyncing}
+				<Button variant="outline" size="sm" onclick={() => syncStore.cancel()}>Cancel</Button>
+			{/if}
 
 			{#if syncStore.error}
 				<p class="text-destructive text-sm">{syncStore.error}</p>
@@ -83,7 +86,7 @@
 		<!-- Stats -->
 		{#if syncStore.lastSyncedAt || syncStore.repoCount > 0}
 			<div class="rounded-lg border p-4">
-				<div class="grid grid-cols-3 gap-4 text-center">
+				<div class="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 md:grid-cols-3">
 					<div>
 						<div class="text-2xl font-bold">{syncStore.repoCount}</div>
 						<div class="text-muted-foreground text-sm">Repositories</div>

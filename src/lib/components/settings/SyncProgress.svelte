@@ -36,7 +36,7 @@
 		<div class="flex items-center justify-between text-sm">
 			<span class="font-medium">{phaseLabel}</span>
 			{#if progress.total > 0}
-				<span class="text-muted-foreground">{progress.current}/{progress.total}</span>
+				<span class="text-muted-foreground tabular-nums">{progress.current}/{progress.total}</span>
 			{/if}
 		</div>
 
@@ -49,6 +49,6 @@
 			</div>
 		{/if}
 
-		<p class="text-muted-foreground text-sm">{progress.message}</p>
+		<p class="text-muted-foreground text-sm tabular-nums">{progress.message}</p>
 	</div>
 {/if}

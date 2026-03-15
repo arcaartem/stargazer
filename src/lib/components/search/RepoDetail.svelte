@@ -63,7 +63,7 @@
 					<Separator />
 
 					<!-- Stats -->
-					<div class="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+					<div class="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3 md:grid-cols-4">
 						<div>
 							<div class="text-muted-foreground">Stars</div>
 							<div class="font-medium">{formatNumber(repo.stargazersCount)}</div>
