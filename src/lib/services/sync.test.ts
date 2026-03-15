@@ -4,8 +4,19 @@ import type { SyncProgress, AppSettings } from '$lib/types';
 
 vi.mock('./github', () => ({
 	fetchStarredRepos: vi.fn(),
-	fetchReadmesBatch: vi.fn()
+	fetchReadme: vi.fn()
 }));
+
+vi.mock('./rate-limiter', () => {
+	const RateLimitThrottle = vi.fn(function (this: unknown) {
+		(this as { add: unknown; adapt: unknown; clear: unknown }).add = vi.fn(
+			(fn: () => Promise<unknown>) => fn()
+		);
+		(this as { add: unknown; adapt: unknown; clear: unknown }).adapt = vi.fn();
+		(this as { add: unknown; adapt: unknown; clear: unknown }).clear = vi.fn();
+	});
+	return { RateLimitThrottle };
+});
 
 vi.mock('./search', () => ({
 	indexAll: vi.fn(),
@@ -28,7 +39,7 @@ vi.mock('$lib/utils/transform', () => ({
 	}))
 }));
 
-import { fetchStarredRepos, fetchReadmesBatch } from './github';
+import { fetchStarredRepos, fetchReadme } from './github';
 import { indexAll, persistToIndexedDB } from './search';
 import { loadSettings, saveSettings } from './settings';
 
@@ -53,7 +64,7 @@ describe('performSync', () => {
 		vi.mocked(loadSettings).mockResolvedValue(mockSettings);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(fetchStarredRepos).mockResolvedValue(mockStarResponse as any);
-		vi.mocked(fetchReadmesBatch).mockResolvedValue(new Map([['octocat/repo1', '# README']]));
+		vi.mocked(fetchReadme).mockResolvedValue('# README');
 	});
 
 	it('completes full sync flow', async () => {
@@ -62,11 +73,7 @@ describe('performSync', () => {
 
 		expect(result.repoCount).toBe(1);
 		expect(result.readmeCount).toBe(1);
-		expect(fetchStarredRepos).toHaveBeenCalledWith(
-			'octocat',
-			'ghp_test123456',
-			expect.any(Function)
-		);
+		expect(fetchStarredRepos).toHaveBeenCalledWith('octocat', 'ghp_test123456', expect.any(Object));
 		expect(indexAll).toHaveBeenCalled();
 		expect(persistToIndexedDB).toHaveBeenCalled();
 		expect(saveSettings).toHaveBeenCalled();
@@ -112,5 +119,18 @@ describe('performSync', () => {
 			// expected
 		}
 		expect(indexAll).not.toHaveBeenCalled();
+	});
+
+	it('returns idle without error when signal is pre-aborted', async () => {
+		const controller = new AbortController();
+		controller.abort();
+		vi.mocked(fetchStarredRepos).mockRejectedValue(new DOMException('Aborted', 'AbortError'));
+
+		const phases: string[] = [];
+		const result = await performSync((p) => phases.push(p.phase), controller.signal);
+
+		expect(result).toEqual({ repoCount: 0, readmeCount: 0 });
+		expect(phases).toContain('idle');
+		expect(phases).not.toContain('error');
 	});
 });

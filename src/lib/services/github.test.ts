@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchStarredRepos, fetchReadme, fetchReadmesBatch } from './github';
+import { fetchStarredRepos, fetchReadme } from './github';
 
 function createMockResponse(
 	body: unknown,
@@ -40,7 +40,7 @@ describe('fetchStarredRepos', () => {
 		expect(result[0].starred_at).toBe('2024-01-01T00:00:00Z');
 	});
 
-	it('follows Link header for pagination', async () => {
+	it('fetches remaining pages concurrently after first page', async () => {
 		const page1 = [{ starred_at: '2024-01-01T00:00:00Z', repo: { id: 1 } }];
 		const page2 = [{ starred_at: '2024-01-02T00:00:00Z', repo: { id: 2 } }];
 
@@ -48,7 +48,9 @@ describe('fetchStarredRepos', () => {
 			.fn()
 			.mockResolvedValueOnce(
 				createMockResponse(page1, {
-					headers: { Link: '<https://api.github.com/next?page=2>; rel="next"' }
+					headers: {
+						Link: '<https://api.github.com/users/octocat/starred?per_page=100&page=2>; rel="next", <https://api.github.com/users/octocat/starred?per_page=100&page=2>; rel="last"'
+					}
 				})
 			)
 			.mockResolvedValueOnce(createMockResponse(page2));
@@ -60,12 +62,36 @@ describe('fetchStarredRepos', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
+	it('routes concurrent page fetches through enqueue', async () => {
+		const page1 = [{ starred_at: '2024-01-01T00:00:00Z', repo: { id: 1 } }];
+		const page2 = [{ starred_at: '2024-01-02T00:00:00Z', repo: { id: 2 } }];
+
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				createMockResponse(page1, {
+					headers: {
+						Link: '<https://api.github.com/users/octocat/starred?per_page=100&page=2>; rel="next", <https://api.github.com/users/octocat/starred?per_page=100&page=2>; rel="last"'
+					}
+				})
+			)
+			.mockResolvedValueOnce(createMockResponse(page2));
+
+		vi.stubGlobal('fetch', fetchMock);
+
+		const enqueue = vi.fn(<T>(fn: () => Promise<T>) => fn()) as <T>(
+			fn: () => Promise<T>
+		) => Promise<T>;
+		await fetchStarredRepos('octocat', 'ghp_token123456', { enqueue });
+		expect(enqueue).toHaveBeenCalledTimes(1);
+	});
+
 	it('calls progress callback with page number', async () => {
 		const mockData = [{ starred_at: '2024-01-01T00:00:00Z', repo: { id: 1 } }];
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(createMockResponse(mockData)));
 
 		const onProgress = vi.fn();
-		await fetchStarredRepos('octocat', 'ghp_token123456', onProgress);
+		await fetchStarredRepos('octocat', 'ghp_token123456', { onProgress });
 		expect(onProgress).toHaveBeenCalledWith(1);
 	});
 
@@ -77,19 +103,27 @@ describe('fetchStarredRepos', () => {
 		);
 	});
 
-	it('throws on rate limit exceeded', async () => {
-		vi.stubGlobal(
-			'fetch',
-			vi.fn().mockResolvedValue(
-				createMockResponse([], {
-					headers: { 'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset': '1710000000' }
-				})
-			)
-		);
+	it('passes signal to fetch', async () => {
+		const mockData = [{ starred_at: '2024-01-01T00:00:00Z', repo: { id: 1 } }];
+		const fetchMock = vi.fn().mockResolvedValue(createMockResponse(mockData));
+		vi.stubGlobal('fetch', fetchMock);
 
-		await expect(fetchStarredRepos('octocat', 'ghp_token123456')).rejects.toThrow(
-			'rate limit exceeded'
+		const controller = new AbortController();
+		await fetchStarredRepos('octocat', 'ghp_token123456', { signal: controller.signal });
+		expect(fetchMock).toHaveBeenCalledWith(
+			expect.any(String),
+			expect.objectContaining({ signal: controller.signal })
 		);
+	});
+
+	it('calls onResponse callback', async () => {
+		const mockData = [{ starred_at: '2024-01-01T00:00:00Z', repo: { id: 1 } }];
+		const mockResponse = createMockResponse(mockData);
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse));
+
+		const onResponse = vi.fn();
+		await fetchStarredRepos('octocat', 'ghp_token123456', { onResponse });
+		expect(onResponse).toHaveBeenCalledWith(mockResponse);
 	});
 });
 
@@ -119,50 +153,25 @@ describe('fetchReadme', () => {
 			'Failed to fetch README'
 		);
 	});
-});
 
-describe('fetchReadmesBatch', () => {
-	beforeEach(() => {
-		vi.restoreAllMocks();
+	it('calls onResponse callback', async () => {
+		const mockResponse = createMockResponse('# Hello World');
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse));
+
+		const onResponse = vi.fn();
+		await fetchReadme('octocat', 'repo', 'ghp_token123456', { onResponse });
+		expect(onResponse).toHaveBeenCalledWith(mockResponse);
 	});
 
-	it('fetches READMEs for multiple repos', async () => {
-		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(createMockResponse('# README')));
-
-		const repos = [
-			{ owner: 'a', repo: 'repo1' },
-			{ owner: 'b', repo: 'repo2' }
-		];
-		const result = await fetchReadmesBatch(repos, 'ghp_token123456');
-		expect(result.size).toBe(2);
-		expect(result.get('a/repo1')).toBe('# README');
-		expect(result.get('b/repo2')).toBe('# README');
-	});
-
-	it('calls progress callback', async () => {
-		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(createMockResponse('# README')));
-
-		const repos = [{ owner: 'a', repo: 'repo1' }];
-		const onProgress = vi.fn();
-		await fetchReadmesBatch(repos, 'ghp_token123456', onProgress);
-		expect(onProgress).toHaveBeenCalledWith(1, 1);
-	});
-
-	it('continues on individual README fetch failure', async () => {
-		const fetchMock = vi
-			.fn()
-			.mockResolvedValueOnce(createMockResponse('', { status: 500 }))
-			.mockResolvedValueOnce(createMockResponse('# Works'));
-
+	it('passes signal to fetch', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(createMockResponse('# Hello World'));
 		vi.stubGlobal('fetch', fetchMock);
 
-		const repos = [
-			{ owner: 'a', repo: 'fail' },
-			{ owner: 'b', repo: 'ok' }
-		];
-		const result = await fetchReadmesBatch(repos, 'ghp_token123456');
-		expect(result.size).toBe(2);
-		expect(result.get('a/fail')).toBe('');
-		expect(result.get('b/ok')).toBe('# Works');
+		const controller = new AbortController();
+		await fetchReadme('octocat', 'repo', 'ghp_token123456', { signal: controller.signal });
+		expect(fetchMock).toHaveBeenCalledWith(
+			expect.any(String),
+			expect.objectContaining({ signal: controller.signal })
+		);
 	});
 });

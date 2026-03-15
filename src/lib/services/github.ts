@@ -2,8 +2,6 @@ import type { GitHubStarResponse } from '$lib/types';
 
 const GITHUB_API = 'https://api.github.com';
 const PER_PAGE = 100;
-const README_BATCH_SIZE = 10;
-const README_BATCH_DELAY_MS = 1000;
 
 function getHeaders(token: string, accept?: string): HeadersInit {
 	return {
@@ -13,102 +11,93 @@ function getHeaders(token: string, accept?: string): HeadersInit {
 	};
 }
 
-function checkRateLimit(response: Response): void {
-	const remaining = response.headers.get('X-RateLimit-Remaining');
-	const reset = response.headers.get('X-RateLimit-Reset');
-	if (remaining === '0' && reset) {
-		const resetDate = new Date(parseInt(reset) * 1000);
-		throw new Error(`GitHub API rate limit exceeded. Resets at ${resetDate.toLocaleTimeString()}`);
-	}
-}
-
-function parseLinkHeader(header: string | null): string | null {
+function parseLastPage(header: string | null): number | null {
 	if (!header) return null;
-	const match = header.match(/<([^>]+)>;\s*rel="next"/);
-	return match ? match[1] : null;
+	const match = header.match(/<[^>]+[?&]page=(\d+)[^>]*>;\s*rel="last"/);
+	return match ? parseInt(match[1], 10) : null;
 }
 
 export async function fetchStarredRepos(
 	username: string,
 	token: string,
-	onProgress?: (page: number) => void
+	options?: {
+		onProgress?: (page: number) => void;
+		signal?: AbortSignal;
+		onResponse?: (r: Response) => void;
+		enqueue?: <T>(fn: () => Promise<T>) => Promise<T>;
+	}
 ): Promise<GitHubStarResponse[]> {
-	const allRepos: GitHubStarResponse[] = [];
-	let url: string | null =
-		`${GITHUB_API}/users/${encodeURIComponent(username)}/starred?per_page=${PER_PAGE}`;
-	let page = 1;
+	const baseUrl = `${GITHUB_API}/users/${encodeURIComponent(username)}/starred?per_page=${PER_PAGE}`;
+	const headers = getHeaders(token, 'application/vnd.github.star+json');
+	const enqueue = options?.enqueue ?? ((fn) => fn());
 
-	while (url) {
-		const response = await fetch(url, {
-			headers: getHeaders(token, 'application/vnd.github.star+json')
+	const firstResponse = await fetch(`${baseUrl}&page=1`, {
+		headers,
+		signal: options?.signal
+	});
+
+	options?.onResponse?.(firstResponse);
+
+	if (!firstResponse.ok) {
+		throw new Error(
+			`Failed to fetch starred repos: ${firstResponse.status} ${firstResponse.statusText}`
+		);
+	}
+
+	const firstData: GitHubStarResponse[] = await firstResponse.json();
+	const allRepos: GitHubStarResponse[] = [...firstData];
+	options?.onProgress?.(1);
+
+	const lastPage = parseLastPage(firstResponse.headers.get('Link'));
+	if (lastPage && lastPage > 1) {
+		let completedPages = 1;
+		const pagePromises = Array.from({ length: lastPage - 1 }, (_, i) => {
+			const pageNum = i + 2;
+			return enqueue(async () => {
+				const response = await fetch(`${baseUrl}&page=${pageNum}`, {
+					headers,
+					signal: options?.signal
+				});
+				options?.onResponse?.(response);
+				if (!response.ok) {
+					throw new Error(
+						`Failed to fetch starred repos: ${response.status} ${response.statusText}`
+					);
+				}
+				const data: GitHubStarResponse[] = await response.json();
+				completedPages++;
+				options?.onProgress?.(completedPages);
+				return data;
+			});
 		});
 
-		checkRateLimit(response);
-
-		if (!response.ok) {
-			throw new Error(`Failed to fetch starred repos: ${response.status} ${response.statusText}`);
+		const results = await Promise.all(pagePromises);
+		for (const data of results) {
+			allRepos.push(...data);
 		}
-
-		const data: GitHubStarResponse[] = await response.json();
-		allRepos.push(...data);
-		onProgress?.(page);
-
-		url = parseLinkHeader(response.headers.get('Link'));
-		page++;
 	}
 
 	return allRepos;
 }
 
-export async function fetchReadme(owner: string, repo: string, token: string): Promise<string> {
+export async function fetchReadme(
+	owner: string,
+	repo: string,
+	token: string,
+	options?: { signal?: AbortSignal; onResponse?: (r: Response) => void }
+): Promise<string> {
 	const response = await fetch(
 		`${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/readme`,
-		{ headers: getHeaders(token, 'application/vnd.github.raw+json') }
+		{ headers: getHeaders(token, 'application/vnd.github.raw+json'), signal: options?.signal }
 	);
 
+	options?.onResponse?.(response);
+
 	if (response.status === 404) return '';
-	checkRateLimit(response);
 
 	if (!response.ok) {
 		throw new Error(`Failed to fetch README for ${owner}/${repo}: ${response.status}`);
 	}
 
 	return response.text();
-}
-
-export async function fetchReadmesBatch(
-	repos: Array<{ owner: string; repo: string }>,
-	token: string,
-	onProgress?: (completed: number, total: number) => void
-): Promise<Map<string, string>> {
-	const readmes = new Map<string, string>();
-	let completed = 0;
-
-	for (let i = 0; i < repos.length; i += README_BATCH_SIZE) {
-		const batch = repos.slice(i, i + README_BATCH_SIZE);
-
-		const results = await Promise.all(
-			batch.map(async ({ owner, repo }) => {
-				try {
-					const content = await fetchReadme(owner, repo, token);
-					return { key: `${owner}/${repo}`, content };
-				} catch {
-					return { key: `${owner}/${repo}`, content: '' };
-				}
-			})
-		);
-
-		for (const { key, content } of results) {
-			readmes.set(key, content);
-		}
-
-		completed += batch.length;
-		onProgress?.(completed, repos.length);
-
-		if (i + README_BATCH_SIZE < repos.length) {
-			await new Promise((resolve) => setTimeout(resolve, README_BATCH_DELAY_MS));
-		}
-	}
-
-	return readmes;
 }

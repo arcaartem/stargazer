@@ -1,11 +1,13 @@
 import type { SyncProgress, AppSettings, StarredRepo } from '$lib/types';
-import { fetchStarredRepos, fetchReadmesBatch } from './github';
+import { fetchStarredRepos, fetchReadme } from './github';
+import { RateLimitThrottle } from './rate-limiter';
 import { indexAll, persistToIndexedDB } from './search';
 import { loadSettings, saveSettings } from './settings';
 import { transformGitHubRepo } from '$lib/utils/transform';
 
 export async function performSync(
-	onProgress: (progress: SyncProgress) => void
+	onProgress: (progress: SyncProgress) => void,
+	signal?: AbortSignal
 ): Promise<{ repoCount: number; readmeCount: number }> {
 	const settings = await loadSettings();
 	const { githubUsername, githubToken } = settings;
@@ -15,7 +17,8 @@ export async function performSync(
 	}
 
 	try {
-		// Phase 1: Fetch starred repos metadata
+		const throttle = new RateLimitThrottle({ signal });
+
 		onProgress({
 			phase: 'fetching-repos',
 			current: 0,
@@ -23,16 +26,20 @@ export async function performSync(
 			message: 'Fetching repositories...'
 		});
 
-		const starResponses = await fetchStarredRepos(githubUsername, githubToken, (page) => {
-			onProgress({
-				phase: 'fetching-repos',
-				current: page,
-				total: 0,
-				message: `Fetching repositories... page ${page}`
-			});
+		const starResponses = await fetchStarredRepos(githubUsername, githubToken, {
+			onProgress: (page) => {
+				onProgress({
+					phase: 'fetching-repos',
+					current: page,
+					total: 0,
+					message: `Fetching repositories... page ${page}`
+				});
+			},
+			signal,
+			onResponse: (r) => throttle.adapt(r),
+			enqueue: (fn) => throttle.add(fn)
 		});
 
-		// Phase 2: Fetch READMEs
 		const repoList = starResponses.map((r) => ({
 			owner: r.repo.owner.login,
 			repo: r.repo.name
@@ -45,16 +52,30 @@ export async function performSync(
 			message: `Fetching READMEs... 0/${repoList.length}`
 		});
 
-		const readmes = await fetchReadmesBatch(repoList, githubToken, (completed, total) => {
-			onProgress({
-				phase: 'fetching-readmes',
-				current: completed,
-				total,
-				message: `Fetching READMEs... ${completed}/${total}`
-			});
-		});
+		let completed = 0;
+		const readmes = new Map<string, string>();
+		const promises = repoList.map(({ owner, repo }) =>
+			throttle.add(async () => {
+				try {
+					const content = await fetchReadme(owner, repo, githubToken, {
+						signal,
+						onResponse: (r) => throttle.adapt(r)
+					});
+					readmes.set(`${owner}/${repo}`, content);
+				} catch {
+					readmes.set(`${owner}/${repo}`, '');
+				}
+				completed++;
+				onProgress({
+					phase: 'fetching-readmes',
+					current: completed,
+					total: repoList.length,
+					message: `Fetching READMEs... ${completed}/${repoList.length}`
+				});
+			})
+		);
+		await Promise.all(promises);
 
-		// Phase 3: Transform and index
 		onProgress({
 			phase: 'indexing',
 			current: 0,
@@ -70,11 +91,9 @@ export async function performSync(
 
 		indexAll(repos);
 
-		// Phase 4: Persist to IndexedDB
 		onProgress({ phase: 'persisting', current: 0, total: 0, message: 'Saving data...' });
 		await persistToIndexedDB();
 
-		// Phase 5: Update settings
 		const readmeCount = Array.from(readmes.values()).filter((r) => r.length > 0).length;
 		const updatedSettings: AppSettings = {
 			...settings,
@@ -93,6 +112,10 @@ export async function performSync(
 
 		return { repoCount: repos.length, readmeCount };
 	} catch (error) {
+		if (signal?.aborted) {
+			onProgress({ phase: 'idle', current: 0, total: 0, message: '' });
+			return { repoCount: 0, readmeCount: 0 };
+		}
 		onProgress({
 			phase: 'error',
 			current: 0,
