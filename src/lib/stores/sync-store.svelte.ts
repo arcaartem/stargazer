@@ -10,17 +10,19 @@ class SyncStore {
 	lastSyncedAt = $state<string | null>(null);
 	repoCount = $state(0);
 	readmeCount = $state(0);
+	private abortController: AbortController | null = null;
 
 	async startSync() {
 		if (this.isSyncing) return;
 
 		this.isSyncing = true;
 		this.error = null;
+		this.abortController = new AbortController();
 
 		try {
 			const result = await performSync((progress) => {
 				this.progress = progress;
-			});
+			}, this.abortController.signal);
 
 			this.repoCount = result.repoCount;
 			this.readmeCount = result.readmeCount;
@@ -28,8 +30,17 @@ class SyncStore {
 		} catch (err) {
 			this.error = err instanceof Error ? err.message : 'Sync failed';
 		} finally {
+			this.abortController = null;
 			this.isSyncing = false;
 		}
+	}
+
+	cancel() {
+		if (!this.isSyncing || !this.abortController) return;
+		this.abortController.abort();
+		this.progress = { phase: 'idle', current: 0, total: 0, message: '' };
+		this.isSyncing = false;
+		this.error = null;
 	}
 
 	async loadSyncStatus() {

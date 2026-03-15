@@ -25,6 +25,9 @@ import { performSync } from '$lib/services/sync';
 describe('syncStore', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		syncStore.error = null;
+		syncStore.isSyncing = false;
+		syncStore.progress = { phase: 'idle', current: 0, total: 0, message: '' };
 	});
 
 	it('has initial idle state', () => {
@@ -41,6 +44,7 @@ describe('syncStore', () => {
 		expect(syncStore.isSyncing).toBe(false);
 		expect(syncStore.repoCount).toBe(10);
 		expect(syncStore.readmeCount).toBe(8);
+		expect(performSync).toHaveBeenCalledWith(expect.any(Function), expect.any(AbortSignal));
 	});
 
 	it('handles sync errors', async () => {
@@ -50,6 +54,34 @@ describe('syncStore', () => {
 
 		expect(syncStore.isSyncing).toBe(false);
 		expect(syncStore.error).toBe('Network error');
+	});
+
+	it('cancel() when not syncing is a no-op', () => {
+		syncStore.cancel();
+		expect(syncStore.isSyncing).toBe(false);
+		expect(syncStore.error).toBeNull();
+	});
+
+	it('cancel() during sync sets idle state', async () => {
+		let resolveFn: (v: { repoCount: number; readmeCount: number }) => void;
+		vi.mocked(performSync).mockImplementation(
+			() =>
+				new Promise((resolve) => {
+					resolveFn = resolve;
+				})
+		);
+
+		const syncPromise = syncStore.startSync();
+		expect(syncStore.isSyncing).toBe(true);
+
+		syncStore.cancel();
+
+		expect(syncStore.isSyncing).toBe(false);
+		expect(syncStore.error).toBeNull();
+		expect(syncStore.progress.phase).toBe('idle');
+
+		resolveFn!({ repoCount: 0, readmeCount: 0 });
+		await syncPromise;
 	});
 
 	it('prevents concurrent syncs', async () => {
