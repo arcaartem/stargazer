@@ -1,16 +1,25 @@
 <script lang="ts">
+	import type { SearchFilters } from '$lib/types';
 	import { Input } from '$lib/components/ui/input';
-	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Label } from '$lib/components/ui/label';
+	import FilterChips from './FilterChips.svelte';
+	import SyntaxHelp from './SyntaxHelp.svelte';
 
 	let {
-		query = $bindable(''),
-		readmeOnly = $bindable(false),
-		onSearch
+		query = $bindable(),
+		parsedFilters = {},
+		readmeOnly = false,
+		hasActiveFilters = false,
+		onSearch,
+		onRemoveFilter,
+		onClearFilters
 	}: {
-		query?: string;
+		query: string;
+		parsedFilters?: Partial<SearchFilters>;
 		readmeOnly?: boolean;
-		onSearch?: (query: string) => void;
+		hasActiveFilters?: boolean;
+		onSearch: (query: string) => void;
+		onRemoveFilter?: (key: string, value?: string) => void;
+		onClearFilters?: () => void;
 	} = $props();
 
 	let debounceTimer: ReturnType<typeof setTimeout>;
@@ -19,27 +28,28 @@
 		const value = (e.target as HTMLInputElement).value;
 		query = value;
 		clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(() => {
-			onSearch?.(value);
-		}, 300);
-	}
-
-	function handleToggle(checked: boolean | 'indeterminate') {
-		readmeOnly = checked === true;
-		onSearch?.(query);
+		debounceTimer = setTimeout(() => onSearch(value), 300);
 	}
 </script>
 
-<div class="flex flex-col gap-3">
-	<Input
-		type="search"
-		placeholder="Search repositories..."
-		value={query}
-		oninput={handleInput}
-		class="w-full"
-	/>
-	<div class="flex items-center gap-2">
-		<Checkbox id="readme-only" checked={readmeOnly} onCheckedChange={handleToggle} />
-		<Label for="readme-only" class="text-muted-foreground text-sm">Search READMEs only</Label>
+<div class="space-y-2">
+	<div class="flex items-center gap-1">
+		<Input
+			type="text"
+			placeholder="Search repos... (try language:rust stars:>100)"
+			value={query}
+			oninput={handleInput}
+			class="flex-1"
+		/>
+		<SyntaxHelp />
 	</div>
+
+	{#if hasActiveFilters}
+		<FilterChips
+			filters={parsedFilters}
+			{readmeOnly}
+			onRemove={(key, value) => onRemoveFilter?.(key, value)}
+			onClearAll={() => onClearFilters?.()}
+		/>
+	{/if}
 </div>

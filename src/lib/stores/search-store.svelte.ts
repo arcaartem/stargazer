@@ -1,4 +1,4 @@
-import type { StarredRepo, SearchFilters, SortOption, SearchResult } from '$lib/types';
+import type { StarredRepo, SortOption, SearchResult } from '$lib/types';
 import {
 	search as searchIndex,
 	getAvailableLanguages,
@@ -6,43 +6,36 @@ import {
 	getAvailableLicenses,
 	getAvailableOwners
 } from '$lib/services/search';
-
-const defaultFilters: SearchFilters = {
-	languages: [],
-	topics: [],
-	licenses: [],
-	owners: [],
-	ownerTypes: [],
-	archived: null,
-	fork: null,
-	isTemplate: null,
-	isPrivate: null,
-	hasIssues: null,
-	hasWiki: null,
-	hasPages: null,
-	hasDiscussions: null,
-	starsMin: null,
-	starsMax: null,
-	forksMin: null,
-	forksMax: null,
-	sizeMin: null,
-	sizeMax: null,
-	createdAfter: null,
-	createdBefore: null,
-	updatedAfter: null,
-	updatedBefore: null,
-	starredAfter: null,
-	starredBefore: null
-};
+import { parseSearchQuery, buildSearchQuery, type ParsedQuery } from '$lib/services/query-parser';
 
 class SearchStore {
 	query = $state('');
-	readmeOnly = $state(false);
-	filters = $state<SearchFilters>({ ...defaultFilters });
-	sort = $state<SortOption>('relevance');
+	sort = $state<SortOption>('stars-desc');
 	results = $state<StarredRepo[]>([]);
 	totalCount = $state(0);
 	selectedRepoId = $state<number | null>(null);
+
+	private parsed = $state<ParsedQuery>({ text: '', filters: {}, readmeOnly: false });
+
+	get parsedFilters() {
+		return this.parsed.filters;
+	}
+
+	get parsedText() {
+		return this.parsed.text;
+	}
+
+	get readmeOnly() {
+		return this.parsed.readmeOnly;
+	}
+
+	get hasActiveFilters() {
+		if (this.parsed.readmeOnly) return true;
+		return Object.values(this.parsed.filters).some((v) => {
+			if (Array.isArray(v)) return v.length > 0;
+			return v !== null && v !== undefined;
+		});
+	}
 
 	get selectedRepo(): StarredRepo | null {
 		if (this.selectedRepoId === null) return null;
@@ -59,7 +52,16 @@ class SearchStore {
 	}
 
 	performSearch() {
-		const result: SearchResult = searchIndex(this.query, this.filters, this.sort, this.readmeOnly);
+		this.parsed = parseSearchQuery(this.query);
+		if (this.parsed.sort) {
+			this.sort = this.parsed.sort;
+		}
+		const result: SearchResult = searchIndex(
+			this.parsed.text,
+			this.parsed.filters,
+			this.sort,
+			this.parsed.readmeOnly
+		);
 		this.results = result.repos;
 		this.totalCount = result.totalCount;
 	}
@@ -68,14 +70,8 @@ class SearchStore {
 		this.selectedRepoId = id;
 	}
 
-	clearFilters() {
-		this.filters = { ...defaultFilters };
-		this.performSearch();
-	}
-
 	setQuery(query: string) {
 		this.query = query;
-		this.sort = query.trim() ? 'relevance' : this.sort;
 		this.performSearch();
 	}
 
@@ -84,13 +80,36 @@ class SearchStore {
 		this.performSearch();
 	}
 
-	setReadmeOnly(readmeOnly: boolean) {
-		this.readmeOnly = readmeOnly;
+	removeFilter(key: string, value?: string) {
+		if (key === '__readmeOnly') {
+			this.query = buildSearchQuery(this.parsed.text, this.parsed.filters, {
+				sort: this.parsed.sort,
+				readmeOnly: false
+			});
+			this.performSearch();
+			return;
+		}
+
+		const newFilters = { ...this.parsed.filters };
+
+		if (value !== undefined) {
+			const arr = (newFilters as Record<string, unknown>)[key] as string[] | undefined;
+			if (arr) {
+				(newFilters as Record<string, unknown>)[key] = arr.filter((v) => v !== value);
+			}
+		} else {
+			delete (newFilters as Record<string, unknown>)[key];
+		}
+
+		this.query = buildSearchQuery(this.parsed.text, newFilters, {
+			sort: this.parsed.sort,
+			readmeOnly: this.parsed.readmeOnly
+		});
 		this.performSearch();
 	}
 
-	updateFilter<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
-		this.filters[key] = value;
+	clearFilters() {
+		this.query = this.parsed.text;
 		this.performSearch();
 	}
 }
