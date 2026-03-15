@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('search page', () => {
 	test('shows search input', async ({ page }) => {
 		await page.goto('search');
-		await expect(page.getByPlaceholder('Search repositories...')).toBeVisible();
+		await expect(page.getByPlaceholder(/Search repos/)).toBeVisible();
 	});
 
 	test('shows empty state when no repos synced', async ({ page }) => {
@@ -11,9 +11,9 @@ test.describe('search page', () => {
 		await expect(page.getByText('No repositories synced')).toBeVisible();
 	});
 
-	test('shows readme-only toggle', async ({ page }) => {
+	test('shows syntax help button', async ({ page }) => {
 		await page.goto('search');
-		await expect(page.getByText('Search READMEs only')).toBeVisible();
+		await expect(page.getByLabel('Search syntax help')).toBeVisible();
 	});
 
 	test('shows repository count in status bar', async ({ page }) => {
