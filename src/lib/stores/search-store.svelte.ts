@@ -53,9 +53,6 @@ class SearchStore {
 
 	performSearch() {
 		this.parsed = parseSearchQuery(this.query);
-		if (this.parsed.sort) {
-			this.sort = this.parsed.sort;
-		}
 		const result: SearchResult = searchIndex(
 			this.parsed.text,
 			this.parsed.filters,
@@ -72,6 +69,14 @@ class SearchStore {
 
 	setQuery(query: string) {
 		this.query = query;
+		this.parsed = parseSearchQuery(this.query);
+		if (this.parsed.sort) {
+			this.sort = this.parsed.sort;
+		} else if (this.parsed.text) {
+			this.sort = 'relevance';
+		} else {
+			this.sort = 'stars-desc';
+		}
 		this.performSearch();
 	}
 

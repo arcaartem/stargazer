@@ -296,13 +296,9 @@ export async function loadFromIndexedDB(): Promise<boolean> {
 		const request = store.getAll();
 		const keysRequest = store.getAllKeys();
 
-		let allKeys: IDBValidKey[];
-
-		keysRequest.onsuccess = () => {
-			allKeys = keysRequest.result;
-		};
-		request.onsuccess = () => {
+		tx.oncomplete = () => {
 			const allData = request.result;
+			const allKeys = keysRequest.result;
 			if (!allData || allData.length === 0) {
 				resolve(false);
 				return;
@@ -330,7 +326,7 @@ export async function loadFromIndexedDB(): Promise<boolean> {
 			resolve(true);
 		};
 
-		request.onerror = () => reject(request.error);
+		tx.onerror = () => reject(tx.error);
 	});
 }
 

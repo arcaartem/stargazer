@@ -8,11 +8,13 @@
 	import { loadFromIndexedDB } from '$lib/services/search';
 
 	let detailOpen = $state(false);
+	let loading = $state(true);
 
 	onMount(async () => {
 		await syncStore.loadSyncStatus();
 		await loadFromIndexedDB();
 		searchStore.performSearch();
+		loading = false;
 	});
 
 	$effect(() => {
@@ -48,35 +50,43 @@
 
 	<div class="flex-1 overflow-y-auto p-4">
 		<div class="mx-auto max-w-5xl">
-			<div class="text-muted-foreground mb-3 text-sm">
-				<span class="tabular-nums">
-					{searchStore.totalCount}
-					{searchStore.totalCount === 1 ? 'repository' : 'repositories'}
-				</span>
-			</div>
-
-			{#if searchStore.results.length === 0}
-				<div class="flex flex-col items-center justify-center py-16 text-center">
-					{#if syncStore.repoCount === 0}
-						<p class="text-lg font-medium">No repositories synced</p>
-						<p class="text-muted-foreground mt-1 text-sm">
-							Go to Settings to sync your starred repositories.
-						</p>
-					{:else}
-						<p class="text-lg font-medium">No results found</p>
-						<p class="text-muted-foreground mt-1 text-sm">Try adjusting your search or filters.</p>
-					{/if}
+			{#if loading}
+				<div class="flex items-center justify-center py-16">
+					<p class="text-muted-foreground text-sm">Loading repositories...</p>
 				</div>
 			{:else}
-				<div class="grid gap-3">
-					{#each searchStore.results as repo (repo.id)}
-						<RepoCard
-							{repo}
-							selected={searchStore.selectedRepoId === repo.id}
-							onclick={() => handleSelectRepo(repo.id)}
-						/>
-					{/each}
+				<div class="text-muted-foreground mb-3 text-sm">
+					<span class="tabular-nums">
+						{searchStore.totalCount}
+						{searchStore.totalCount === 1 ? 'repository' : 'repositories'}
+					</span>
 				</div>
+
+				{#if searchStore.results.length === 0}
+					<div class="flex flex-col items-center justify-center py-16 text-center">
+						{#if syncStore.repoCount === 0}
+							<p class="text-lg font-medium">No repositories synced</p>
+							<p class="text-muted-foreground mt-1 text-sm">
+								Go to Settings to sync your starred repositories.
+							</p>
+						{:else}
+							<p class="text-lg font-medium">No results found</p>
+							<p class="text-muted-foreground mt-1 text-sm">
+								Try adjusting your search or filters.
+							</p>
+						{/if}
+					</div>
+				{:else}
+					<div class="grid gap-3">
+						{#each searchStore.results as repo (repo.id)}
+							<RepoCard
+								{repo}
+								selected={searchStore.selectedRepoId === repo.id}
+								onclick={() => handleSelectRepo(repo.id)}
+							/>
+						{/each}
+					</div>
+				{/if}
 			{/if}
 		</div>
 	</div>
